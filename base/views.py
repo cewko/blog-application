@@ -1,8 +1,10 @@
 from django.shortcuts import get_object_or_404, render, redirect
 from django.views.generic import ListView
 from django.http import Http404
+from django.core.mail import send_mail
 
 from .models import Post
+from .forms import EmailPostForm
 # from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 
 
@@ -33,6 +35,51 @@ def post_detail(request, year, month, day, post):
         request,
         "base/post/detail.html",
         {"post": post}
+    )
+
+
+def post_share(request, post_id):
+    # retrieve post by id
+    post = get_object_or_404(
+        Post,
+        id=post_id,
+        status=Post.Status.PUBLISHED
+    )
+    sent = False
+
+    if request.method == "POST":
+        # form was submitted
+        form = EmailPostForm(request.POST)
+        if form.is_valid():
+            # form fields passed validation, 
+            # retrieve a dict of the clean, validated data
+            cd = form.cleaned_data
+            # send email
+            post_url = request.build_absolute_uri(
+                post.get_absolute_url()
+            )
+            subject = (
+                f"{cd['name']} ({cd['email']}) "
+                f"recommends you read {post.title}"
+            )
+            message = (
+                f"Read {post.title} at {post_url}\n\n"
+                f"{cd['name']}\'s comment: {cd['comment']}"
+            )
+            send_mail(
+                subject=subject,
+                message=message,
+                from_email=None,
+                recipient_list=[cd["to"]]
+            )
+            sent = True
+    else:
+        form = EmailPostForm()
+        
+    return render(
+        request,
+        "base/post/share.html",
+        {"post": post, "form": form, "sent": sent}
     )
 
 
