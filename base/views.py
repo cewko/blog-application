@@ -1,25 +1,51 @@
 from django.shortcuts import get_object_or_404, render, redirect
-from django.views.generic import ListView
+# from django.views.generic import ListView
 from django.http import Http404
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
 
 from .models import Post
 from .forms import CommentForm, EmailPostForm
-# from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
+from taggit.models import Tag
 
 
-class PostListView(ListView):
-    queryset = Post.published.all()
-    context_object_name = "posts"
-    paginate_by = 3
-    template_name = "base/post/list.html"
+def post_list(request, tag_slug=None):
+    post_list = Post.published.all()
 
-    def get(self, request, *args, **kwargs):
-        try:
-            return super().get(request, *args, **kwargs)
-        except Http404:
-            return redirect(request.path)
+    tag = None
+    if tag_slug:
+        tag = get_object_or_404(Tag, slug=tag_slug)
+        post_list = post_list.filter(tags__in=[tag])
+
+    # Pagination with 3 posts per page
+    paginator = Paginator(post_list, 3)
+    page_number = request.GET.get("page", 1)
+    try:
+        posts = paginator.page(page_number)
+    except PageNotAnInteger:
+        # if page_number isn't an int get the first page
+        posts = paginator.page(1)
+    except EmptyPage:
+        posts = paginator.page(paginator.num_pages)
+
+    return render(
+        request, 
+        "base/post/list.html", 
+        {"posts": posts, "tag": tag}
+    )
+
+# class PostListView(ListView):
+#     queryset = Post.published.all()
+#     context_object_name = "posts"
+#     paginate_by = 3
+#     template_name = "base/post/list.html"
+
+#     def get(self, request, *args, **kwargs):
+#         try:
+#             return super().get(request, *args, **kwargs)
+#         except Http404:
+#             return redirect(request.path)
 
 
 def post_detail(request, year, month, day, post):
@@ -122,24 +148,3 @@ def post_comment(request, post_id):
             "comment": comment
         }
     )
-
-
-
-# def post_list(request):
-#     post_list = Post.published.all()
-#     # Pagination with 3 posts per page
-#     paginator = Paginator(post_list, 3)
-#     page_number = request.GET.get("page", 1)
-#     try:
-#         posts = paginator.page(page_number)
-#     except PageNotAnInteger:
-#         # if page_number isn't an int get the first page
-#         posts = paginator.page(1)
-#     except EmptyPage:
-#         posts = paginator.page(paginator.num_pages)
-
-#     return render(
-#         request, 
-#         "base/post/list.html", 
-#         {"posts": posts}
-#     )

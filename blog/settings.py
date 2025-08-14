@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "taggit",
+
     "base.apps.BaseConfig",
 ]
 
