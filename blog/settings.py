@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
+    "django.contrib.sites",
+    "django.contrib.sitemaps",
     "django.contrib.staticfiles",
 
     "taggit",
@@ -135,3 +137,5 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+SITE_ID = 1
