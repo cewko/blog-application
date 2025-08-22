@@ -18,10 +18,11 @@ Including another URLconf
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
 from django.urls import include, path
-from base.sitemaps import PostSitemap
+from base.sitemaps import PostSitemap, TagSitemap
 
 sitemaps = {
-    "posts": PostSitemap
+    "posts": PostSitemap,
+    "tags": TagSitemap
 }
 
 urlpatterns = [
