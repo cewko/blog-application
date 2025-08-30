@@ -30,12 +30,12 @@ EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure--^v--!x8&_@h0-y9_q#b_p34bq*-wp6jnu$0ex5wg#w-t9)0(r"
+SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=False).lower() == "true"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
