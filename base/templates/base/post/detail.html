@@ -7,6 +7,10 @@
     <h1>{{ post.title }}</h1>
     <p class="date">
         Published {{ post.publish }} by {{ post.author }}
+        | {{ post.get_word_count }} words
+        {% with post.get_reading_time as reading_time %}
+        | {{ reading_time }} minute{{ reading_time|pluralize }}
+        {% endwith %}
     </p>
     {{ post.body|markdown }}
     <p>
