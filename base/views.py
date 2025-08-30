@@ -1,62 +1,44 @@
-from django.shortcuts import get_object_or_404, render, redirect
-# from django.views.generic import ListView
-from django.http import Http404
+from typing import Optional
+
+from django.conf import settings
+from django.shortcuts import get_object_or_404, render
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
+from django.core.paginator import Paginator
+
+from django.contrib.postgres.search import TrigramSimilarity
+from django.db.models import Count
+from taggit.models import Tag
 
 from .models import Post
-# from django.contrib.postgres.search import (
-#     SearchVector,
-#     SearchQuery,
-#     SearchRank
-# )
 from .forms import CommentForm, EmailPostForm, SearchForm
-from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
-from django.contrib.postgres.search import TrigramSimilarity
-from taggit.models import Tag
-from django.db.models import Count
 
-def post_list(request, tag_slug=None):
-    post_list = Post.published.all()
+
+def post_list(request, tag_slug: Optional[str] = None):
+    post_list = Post.published.select_related("author")\
+        .prefetch_related("tags").all()
 
     tag = None
     if tag_slug:
         tag = get_object_or_404(Tag, slug=tag_slug)
         post_list = post_list.filter(tags__in=[tag])
 
-    # Pagination with 3 posts per page
+    # pagination with 3 posts per page
     paginator = Paginator(post_list, 3)
     page_number = request.GET.get("page", 1)
-    try:
-        posts = paginator.page(page_number)
-    except PageNotAnInteger:
-        # if page_number isn't an int get the first page
-        posts = paginator.page(1)
-    except EmptyPage:
-        posts = paginator.page(paginator.num_pages)
+    posts = paginator.get_page(page_number)
 
     return render(
-        request, 
-        "base/post/list.html", 
-        {"posts": posts, "tag": tag}
-    )
-
-# class PostListView(ListView):
-#     queryset = Post.published.all()
-#     context_object_name = "posts"
-#     paginate_by = 3
-#     template_name = "base/post/list.html"
-
-#     def get(self, request, *args, **kwargs):
-#         try:
-#             return super().get(request, *args, **kwargs)
-#         except Http404:
-#             return redirect(request.path)
+        request, "base/post/list.html", {"posts": posts, "tag": tag}
+        )
 
 
 def post_detail(request, year, month, day, post):
+    post_qs = Post.published.select_related("author")\
+        .prefetch_related("tags", "comments")
+
     post = get_object_or_404(
-        Post, 
+        post_qs, 
         status=Post.Status.PUBLISHED,
         slug=post,
         publish__year=year,
@@ -68,14 +50,16 @@ def post_detail(request, year, month, day, post):
     # form for users to comment
     form = CommentForm()
 
-    # List of similar posts
+    # list of similar posts
     post_tags_ids = post.tags.values_list("id", flat=True)
-    similar_posts = Post.published.filter(
-        tags__in=post_tags_ids
-    ).exclude(id=post.id)
-    similar_posts = similar_posts.annotate(
-        same_tags=Count("tags")
-    ).order_by("-same_tags", "-publish")[:4]
+    similar_posts = (
+        Post.published.filter(tags__in=post_tags_ids)
+        .exclude(id=post.id)
+        .annotate(same_tags=Count("tags", distinct=True))
+        .order_by("-same_tags", "-publish")[:4]
+        .select_related("author")
+        .prefetch_related("tags")
+    )
 
     return render(
         request,
@@ -99,20 +83,13 @@ def post_search(request):
         if form.is_valid():
             query = form.cleaned_data['query']
 
-            results = Post.published.annotate(
-                similarity=TrigramSimilarity("title", query)
-            ).filter(similarity__gte=0.1).order_by("-similarity")
-
-            # search_vector = SearchVector(
-            #     "title", weight="A"
-            # ) + SearchVector("body", weight="B")
-            # search_query = SearchQuery(query)
-            # results = (
-            #     Post.published.annotate(
-            #         search=search_vector,
-            #         rank=SearchRank(search_vector, search_query)
-            #     ).filter(rank__gte=0.3).order_by("-rank")
-            # )
+            results = (
+                Post.published.annotate(similarity=TrigramSimilarity("title", query))
+                .filter(similarity_gte=0.1)
+                .order_by("-similarity")
+                .select_related("author")
+                .prefetch_related("tags")
+            )
 
     return render(
         request,
@@ -137,7 +114,7 @@ def post_share(request, post_id):
     if request.method == "POST":
         # form was submitted
         form = EmailPostForm(request.POST)
-        if form.is_valid():
+        if form.is_valid(): # TODO
             # form fields passed validation, 
             # retrieve a dict of the clean, validated data
             cd = form.cleaned_data
@@ -145,21 +122,11 @@ def post_share(request, post_id):
             post_url = request.build_absolute_uri(
                 post.get_absolute_url()
             )
-            subject = (
-                f"{cd['name']} ({cd['email']}) "
-                f"recommends you read {post.title}"
-            )
-            message = (
-                f"Read {post.title} at {post_url}\n\n"
-                f"{cd['name']}\'s comment: {cd['comment']}"
-            )
-            send_mail(
-                subject=subject,
-                message=message,
-                from_email=None,
-                recipient_list=[cd["to"]]
-            )
-            sent = True
+            subject = f"{cd['name']} ({cd['email']}) recommends you read '{post.title}'"
+            message = f"Read {post.title} at {post_url}\n\n{cd['name']}'s comment: {cd['comment']}"
+            from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None)
+
+            sent = send_mail(subject, message, from_email, [cd["to"]]) > 0
     else:
         form = EmailPostForm()
         
@@ -180,7 +147,7 @@ def post_comment(request, post_id):
     )
     comment = None
 
-    # a comment was posted
+    # comment was posted
     form = CommentForm(data=request.POST)
     if form.is_valid():
         # create a comment object without saving it to the database

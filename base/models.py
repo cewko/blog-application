@@ -1,11 +1,12 @@
+import math
+import markdown
+
 from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import strip_tags
 from taggit.managers import TaggableManager
-import markdown
-import math
 
 
 class PublishedManager(models.Manager):
@@ -73,7 +74,7 @@ class Post(models.Model):
     def get_reading_time(self, words_per_minute=200):
         word_count = self.get_word_count()
         reading_time = math.ceil(word_count / words_per_minute)
-        
+
         return max(reading_time, 1)
 
 
