@@ -85,7 +85,7 @@ def post_search(request):
 
             results = (
                 Post.published.annotate(similarity=TrigramSimilarity("title", query))
-                .filter(similarity_gte=0.1)
+                .filter(similarity__gte=0.1)
                 .order_by("-similarity")
                 .select_related("author")
                 .prefetch_related("tags")
