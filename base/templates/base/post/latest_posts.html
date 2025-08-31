@@ -1,7 +1,10 @@
-<ul>
-    {% for post in latest_posts %}
-    <li>
-        <a href="{{ post.get_absolute_url }}">{{ post.title }}</a>
-    </li>
-    {% endfor %}
-</ul>
+<div class="list-group list-group-flush">
+  {% for post in latest_posts %}
+  <a
+    href="{{ post.get_absolute_url }}"
+    class="list-group-item-action border-0 px-0 mb-2 text-decoration-none"
+  >
+    <i class="bi bi-arrow-right me-2 text-primary"></i>{{ post.title }}
+  </a>
+  {% endfor %}
+</div>
