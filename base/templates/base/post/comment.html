@@ -4,9 +4,44 @@
 
 {% block content %}
     {% if comment %}
-        <h2>Your comment has been added.</h2>
-        <p><a href="{{ post.get_absolute_url }}">Back to the post</a></p>
+        <div class="row justify-content-center py-5">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-0 bg-transparent">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-4">
+                            <i class="bi bi-check-circle-fill text-success display-1"></i>
+                        </div>
+                        <h2 class="text-success mb-3">Comment Added Successfully!</h2>
+                        <p class="text-muted mb-4">
+                            Thank you for your comment. It has been added to the post and is now visible to other readers.
+                        </p>
+                        <a href="{{ post.get_absolute_url }}" class="btn btn-primary">
+                            <i class="bi bi-arrow-left me-2"></i>Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
     {% else %}
-        {% include "base/post/includes/comment_form.html" %}
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="mb-4">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb">
+                            <li class="breadcrumb-item">
+                                <a href="{% url 'base:post_list' %}">Home</a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="{{ post.get_absolute_url }}">{{ post.title|truncatechars:30 }}</a>
+                            </li>
+                            <li class="breadcrumb-item active">Add Comment</li>
+                        </ol>
+                    </nav>
+                    <h1 class="display-6">Add a Comment</h1>
+                    <p class="text-muted">Share your thoughts about "{{ post.title }}"</p>
+                </div>
+                {% include "base/post/includes/comment_form.html" %}
+            </div>
+        </div>
     {% endif %}
 {% endblock %}
