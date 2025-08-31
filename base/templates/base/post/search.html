@@ -4,29 +4,139 @@
 {% block title %}Search{% endblock %}
 
 {% block content %}
-    {% if query %}
-        <h1>Posts containing "{{ query }}"</h1>
-        <h3>
-            {% with results.count as total_results %}
-                Found {{ total_results }} result{{ total_results|pluralize }}
-            {% endwith %}
-        </h3>
-        {% for post in results %}
-            <h4>
-                <a href="{{ post.get_absolute_url }}">
-                    {{ post.title }}
-                </a>
-            </h4>
-            {{ post.body|markdown|truncatewords_html:12 }}
-        {% empty %}
-            <p>There are no results for your query.</p>
-        {% endfor %}
-        <p><a href="{% url 'base:post_search' %}">Search again</a></p>
-    {% else %}
-        <h1>Search for posts</h1>
-        <form method="get">
-            {{ form.as_p }}
-            <input type="submit" value="Search">
-        </form>
-    {% endif %}
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <!-- Search Header -->
+            <div class="text-center mb-5">
+                <i class="bi bi-search display-4 text-primary mb-3"></i>
+                <h1 class="display-5 fw-bold">Search</h1>
+                <p class="lead text-muted">Find articles that interest you</p>
+            </div>
+
+            <!-- Search Form -->
+            <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-9">
+                    <label for="id_query" class="form-label">Search Query</label>
+                    <!-- Wrapper adds the border -->
+                    <div class="border rounded d-flex align-items-center p-1">
+                    <span class="input-group-text border-0 bg-transparent">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input
+                        type="text"
+                        name="query"
+                        id="id_query"
+                        class="form-control border-0 py-1"
+                        placeholder="Type your search"
+                    >
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                    <i class="bi bi-search me-2"></i>Search
+                    </button>
+                </div>
+                </form>
+            </div>
+            </div>
+
+
+            {% if query %}
+                <!-- Search Results Header -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <p class="text-muted mb-0">
+                            {% with results.count as total_results %}
+                                {% if total_results %}
+                                    Found <strong>{{ total_results }}</strong> result{{ total_results|pluralize }} for 
+                                    <span class="bg-light text-dark">"{{ query }}"</span>
+                                {% else %}
+                                    Nothing found for <span class="bg-light text-dark">"{{ query }}"</span>
+                                {% endif %}
+                            {% endwith %}
+                        </p>
+                    </div>
+                    <a href="{% url 'base:post_search' %}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise me-1"></i>New Search
+                    </a>
+                </div>
+
+                <!-- Search Results -->
+                {% for post in results %}
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-body">
+                            <!-- Tags -->
+                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                {% for tag in post.tags.all %}
+                                    <span class="badge bg-secondary">{{ tag.name }}</span>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Title -->
+                            <h4 class="card-title mb-2">
+                                <a href="{{ post.get_absolute_url }}" 
+                                   class="text-decoration-none text-dark">
+                                    {{ post.title }}
+                                </a>
+                            </h4>
+
+                            <!-- Meta -->
+                            <div class="d-flex flex-wrap gap-3 text-muted small mb-3">
+                                <span>
+                                    <i class="bi bi-person me-2"></i>{{ post.author }}
+                                </span>
+                                <span>
+                                    <i class="bi bi-calendar3 me-2"></i>{{ post.publish|date:"M j, Y" }}
+                                </span>
+                                <span>
+                                    <i class="bi bi-file-text me-2"></i>{{ post.get_word_count }} words
+                                </span>
+                                {% with post.get_reading_time as reading_time %}
+                                <span>
+                                    <i class="bi bi-file-text me-2"></i>{{ reading_time }} minute{{ reading_time|pluralize }} read
+                                </span>
+                                {% endwith %}
+                            </div>
+
+                            <!-- Preview -->
+                            <div class="text-muted mb-3">
+                                {{ post.body|markdown|truncatewords_html:20 }}
+                            </div>
+
+                            <!-- Read More -->
+                            <a href="{{ post.get_absolute_url }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                Read <i class="bi bi-arrow-right ms-1"></i>
+                            </a>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-emoji-frown display-1 text-muted mb-3"></i>
+                        <h3>Nothing was found</h3>
+                        <p class="text-muted mb-4">
+                            Sorry, we couldn't find any articles matching your search query.
+                        </p>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <style>
+        #id_query {
+            border: none;
+            font-size: 1.25rem;
+            padding: 0.5rem 1rem;
+        }
+        #id_query:focus {
+            box-shadow: none;
+        }
+        .input-group:focus-within {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+    </style>
 {% endblock %}
